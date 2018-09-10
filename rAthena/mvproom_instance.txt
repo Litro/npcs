@@ -1,6 +1,5 @@
 // Add into instance_db, adjust id of instance if necessary
-//18,Private MVP Room,3600,300,06guild_01,50,50
-
+// 18,Private MVP Room,3600,300,06guild_01,50,50
 
 skypiea,202,246,5	script	Private MVP Room	10092,{
 	.@instance$ = "Private MVP Room";
