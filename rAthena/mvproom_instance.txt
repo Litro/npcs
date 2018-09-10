@@ -1,0 +1,546 @@
+// Add into instance_db, adjust id of instance if necessary
+//18,Private MVP Room,3600,300,06guild_01,50,50
+
+
+skypiea,202,246,5	script	Private MVP Room	10092,{
+	.@instance$ = "Private MVP Room";
+	if ((.@instance_map$ = instance_mapname("06guild_01")) != "") {
+		if ((.@enter = instance_enter(.@instance$)) != 0) {
+			mes .@npc_name$;
+			mes "Failed to enter reserved room";
+			switch (.@enter) {
+				case 1: .@reason = "ERROR: Party not found."; break;
+				case 2: .@reason = "ERROR: Party does not have an instance."; break;
+				case 3: .@reason = "ERROR: Unknown error."; break;
+			}
+			mes "Fail Reason: "+.@reason;
+			close;
+		}
+		end;
+	}
+	mes .@npc_name$ = "[Private MVP Room]";
+	if (.rentpayment) {
+		mes "The cost to rent a room for "+.timeout+" second is:";
+		if (.rentpayment&1)
+			mes "~ "+.rentitemamount+"x "+getitemname(.rentitemid)+".";
+		if (.rentpayment&2)
+			mes "~ "+callfunc("int__", .rentcost) +" Zeny.";
+	} else
+		mes "You can only use the room for only "+.timeout+" second.";
+	mes " ";
+	mes "Please select room reservation type";
+	next;
+	.@type = select ("> Personal Room:> Party Room:> Guild Room")-1;
+
+	.@instance_owner = getcharid(.@type);
+
+	mes .@npc_name$;
+	if (!.@instance_owner) {
+		mes "You can't reserve this type room";
+		mes "You are not in "+((.@type == 1) ? "Party" : ((.@type == 2) ? "Guild": ""));
+		close;
+	}
+	if (.rentpayment) {
+		if (.rentpayment&1) {
+			if (countitem(.rentitemid) < .rentitemamount) {
+				mes "You need "+.rentitemamount+"x "+getitemname(.rentitemid)+" to reserve this room";
+				close;
+			} else
+				delitem .rentitemid, .rentitemamount;
+		}
+		if (.rentpayment&2) {
+			if (Zeny < .rentcost) {
+				mes "You need "+callfunc("int__", .rentcost)+" Zeny,  to reserver this room";
+				close;
+			} else
+				Zeny -= .rentcost;
+		}
+	}
+	if (.@create = instance_create(.@instance$, .instance_type[.@type], .@instance_owner) < 0) {
+		mes "Failed to open reserved room";
+		switch (.@create) {
+			case -1: .@reason = "ERROR: Invalid type."; break;
+			case -2: .@reason = "ERROR: Party not found."; break;
+			case -3: .@reason = "ERROR: Instance already exists."; break;
+			case -4: .@reason = "ERROR: No free instances."; break;
+		}
+		mes "Fail Reason: "+.@reason;
+		emotion ET_HUK;
+		close;
+	}
+	mes "Allright, I will teleport you inside.";
+	close2;
+	if (.@enter = instance_enter(.@instance$) != 0) {
+		mes .@npc_name$;
+		mes "Failed to enter reserved room";
+		switch (.@enter) {
+			case 1: .@reason = "ERROR: Party not found."; break;
+			case 2: .@reason = "ERROR: Party does not have an instance."; break;
+			case 3: .@reason = "ERROR: Unknown error."; break;
+		}
+		mes "Fail Reason: "+.@reason;
+		close;
+	}
+	end;
+	
+OnInit:
+	// rental payment
+	// 0 = free
+	// 1 = with item
+	// 2 = with zeny
+	// 1|2 = with item and zeny
+	.rentpayment = 2;
+	
+	// rental payment with item
+	.rentitemid = 33010;
+	.rentitemamount = 1;
+	if ( .rentitemid && .rentitemamount ) {
+		if ( getitemname(.rentitemid) == "null" ) {
+			debugmes "Private MVP Room: Rent a room is using invalid item id.";
+			disablenpc strnpcinfo(0);
+		}
+	}
+	
+	// rental payment with zeny
+	.rentcost = 5000000;
+	
+	setarray .instance_type[0], IM_CHAR, IM_PARTY, IM_GUILD;
+	.timeout = instance_info("Private MVP Room", IIT_TIME_LIMIT);
+	end;
+}
+
+//	This is the shop for this Branch room IF you already enable it. Can sell whatever things you want.
+-	shop	MVP room#branch	-1,604:100000,12103:1000000
+
+06guild_01,49,49,0	script	MVP Summoner	116,{
+	mes "[MVP Summoner]";
+	mes "Hi, what can I do for you ?";
+	next;
+	switch ( select(.menu$) ) {
+		case 1:
+			mes "[MVP Summoner]";
+			if ( mobcount("this","") > 0 ) {
+				mes "I cannot offer heal service when there are monsters around.";
+				close;
+			}
+			skilleffect 74,0; sc_start SC_MAGNIFICAT,600000,5;
+			skilleffect 75,0; sc_start SC_GLORIA,600000,5;
+			skilleffect 67,0; sc_start SC_SUFFRAGIUM,600000,3;
+			skilleffect 34,0; sc_start SC_BLESSING,600000,10;
+			skilleffect 29,0; sc_start SC_INCREASEAGI,600000,10;
+			sc_end SC_STONE;
+			sc_end SC_SLOWDOWN;
+			sc_end SC_FREEZE;
+			sc_end SC_SLEEP;
+			sc_end SC_CURSE;
+			sc_end SC_SILENCE;
+			sc_end SC_CONFUSION;
+			sc_end SC_BLIND;
+			sc_end SC_BLEEDING;
+			sc_end SC_DECREASEAGI;
+			sc_end SC_POISON;
+			sc_end SC_HALLUCINATION;
+			sc_end SC_STRIPWEAPON;
+			sc_end SC_STRIPARMOR;
+			sc_end SC_STRIPHELM;
+			sc_end SC_STRIPSHIELD;
+			sc_end SC_CHANGEUNDEAD;
+			sc_end SC_ORCISH;
+			sc_end SC_BERSERK;
+			sc_end SC_SKE;
+			sc_end SC_SWOO;
+			sc_end SC_SKA;
+			percentheal 100,100;
+			specialeffect2 EF_HEAL;
+			mes "You have completely healed.";
+			close;
+		default:
+			set .@group, @menu -1;
+			if ( .floodcontrol && mobcount("this","") > 0 ) {
+				mes "[MVP Summoner]";
+				mes "I cannot summon another monster when there are monsters around.";
+				close;
+			}
+			else if ( getd(".group"+ .@group +"itemid") && getd(".group"+ .@group +"itemamount") ) {
+				mes "[MVP Summoner]";
+				mes "The cost to summon a "+ getd(".group"+ .@group +"name$") +" is "+ getd(".group"+ .@group +"itemamount") +" "+ getitemname( getd(".group"+ .@group +"itemid") ) +".";
+				if ( getd(".group"+ .@group +"limit") < 0 )
+					mes "("+( ( ~getd(".group"+ .@group +"limit")+1 - getd(".group"+ .@group +"limit"+ .@dif) <= 0 )?0:( ~getd(".group"+ .@group +"limit")+1 - getd(".group"+ .@group +"limit"+ .@dif) ) )+") more summons for this group.";
+				next;
+			}
+			else if ( getd(".group"+ .@group +"cost") ) {
+				mes "[MVP Summoner]";
+				mes "The cost to summon a "+ getd(".group"+ .@group +"name$") +" is "+ callfunc("int__", getd(".group"+ .@group +"cost") ) +" Zeny.";
+				if ( getd(".group"+ .@group +"limit") < 0 )
+					mes "("+( ( ~getd(".group"+ .@group +"limit")+1 - getd(".group"+ .@group +"limit"+ .@dif) <= 0 )?0:( ~getd(".group"+ .@group +"limit")+1 - getd(".group"+ .@group +"limit"+ .@dif) ) )+") more summons for this group.";
+				next;
+			}
+			else if ( getd(".group"+ .@group +"limit") < 0 ) {
+				mes "[MVP Summoner]";
+				mes "("+( ( ~getd(".group"+ .@group +"limit")+1 - getd(".group"+ .@group +"limit"+ .@dif) <= 0 )?0:( ~getd(".group"+ .@group +"limit")+1 - getd(".group"+ .@group +"limit"+ .@dif) ) )+") more summons for this group.";
+				next;
+			}
+			if ( getd(".group"+ .@group +"limit") < 0 && getd(".group"+ .@group +"limit"+ .@dif) >= ~getd(".group"+ .@group +"limit")+1 ) {
+				mes "[MVP Summoner]";
+				mes "I'm sorry, but you can't summon any more monster for this group.";
+				close;
+			}
+			else if ( getd(".group"+ .@group +"limit") > 0 ) {
+				for ( set .@i, 0; .@i < getd(".group"+ .@group +"idsize"); set .@i, .@i +1 )
+					set .@menu$, .@menu$ +( ( getd(".group"+ .@group +"limit"+ .@dif +"["+ .@i +"]") >= getd(".group"+ .@group +"limit") )?"^999999":"^000000" )+ getmonsterinfo( getd(".group"+ .@group +"id["+ .@i +"]"), 0) +" ("+ ( ( getd(".group"+ .@group +"limit") - getd(".group"+ .@group +"limit"+ .@dif +"["+ .@i +"]") <= 0 )?0:( getd(".group"+ .@group +"limit") - getd(".group"+ .@group +"limit"+ .@dif +"["+ .@i +"]") ) ) +")"+":";
+				set .@menu, select(.@menu$) -1;
+			}
+			else
+				set .@menu, select( getd(".group"+ .@group +"menu$") ) -1;
+			mes "[MVP Summoner]";
+			if ( .floodcontrol == 0 && .inputlimit > 1 ) {
+				mes "Input an amount of monsters to summon.";
+				next;
+				input .@amount;
+				if ( .@amount == 0 ) close;
+				else if ( .@amount > .inputlimit )
+					set .@amount, .inputlimit;
+				mes "[MVP Summoner]";
+			}
+			else
+				set .@amount, 1;
+			if ( getd(".group"+ .@group +"itemid") && getd(".group"+ .@group +"itemamount") ) {
+				if ( countitem( getd(".group"+ .@group +"itemid") ) < getd(".group"+ .@group +"itemamount") * .@amount ) {
+					mes "You don't have enough "+ getitemname( getd(".group"+ .@group +"itemid") ) +" to summon a "+ getd(".group"+ .@group +"name$") +".";
+					close;
+				}
+			}
+			else if ( getd(".group"+ .@group +"cost") ) {
+				if ( Zeny < getd(".group"+ .@group +"cost") * .@amount ) {
+					mes "You don't have enough Zeny to summon a "+ getd(".group"+ .@group +"name$") +".";
+					close;
+				}
+			}
+			if ( .floodcontrol && mobcount("this","") > 0 ) {
+				mes "I cannot summon another monster when there are monsters around.";
+				close;
+			}
+			else if ( getd(".group"+ .@group +"limit") > 0 ) {
+				if ( getd(".group"+ .@group +"limit"+ .@dif +"["+ .@menu +"]") >= getd(".group"+ .@group +"limit") ) {
+					mes "I'm sorry, but you already summoned that monster too much. Try summon another.";
+					close;
+				}
+				else if ( getd(".group"+ .@group +"limit"+ .@dif +"["+ .@menu +"]") + .@amount > getd(".group"+ .@group +"limit") ) {
+					mes "The amount you input is more than the limit you can summon. Try reduce the amount.";
+					close;
+				}
+			}
+			else if ( getd(".group"+ .@group +"limit") < 0 ) {
+				if ( getd(".group"+ .@group +"limit"+ .@dif) >= ~getd(".group"+ .@group +"limit")+1 ) {
+					mes "I'm sorry, but you can't summon any more monster for this group.";
+					close;
+				}
+				else if ( getd(".group"+ .@group +"limit"+ .@dif) + .@amount > ~getd(".group"+ .@group +"limit")+1 ) {
+					mes "The amount you input is more than the limit you can summon. Try reduce the amount.";
+					close;
+				}
+			}
+			mes "Summoning "+ .@amount +" "+ getmonsterinfo( getd(".group"+ .@group +"id["+ .@menu +"]"), 0) +".";
+			mes "Ok, get ready ?";
+			close2;
+			if ( .floodcontrol && mobcount("this","") > 0 ) end;
+			if ( getd(".group"+ .@group +"itemid") && getd(".group"+ .@group +"itemamount") ) {
+				if ( countitem( getd(".group"+ .@group +"itemid") ) < getd(".group"+ .@group +"itemamount") * .@amount ) end;
+				delitem getd(".group"+ .@group +"itemid"), getd(".group"+ .@group +"itemamount") * .@amount;
+			}
+			else if ( getd(".group"+ .@group +"cost") ) {
+				if ( Zeny < getd(".group"+ .@group +"cost") * .@amount ) end;
+				set Zeny, Zeny - getd(".group"+ .@group +"cost") * .@amount;
+			}
+			if ( getd(".group"+ .@group +"limit") > 0 ) {
+				if ( getd(".group"+ .@group +"limit"+ .@dif +"["+ .@menu +"]") + .@amount > getd(".group"+ .@group +"limit") ) end;
+				setd ".group"+ .@group +"limit"+ .@dif +"["+ .@menu +"]", getd(".group"+ .@group +"limit"+ .@dif +"["+ .@menu +"]") + .@amount;
+			}
+			else if ( getd(".group"+ .@group +"limit") < 0 ) {
+				if ( getd(".group"+ .@group +"limit"+ .@dif) + .@amount > ~getd(".group"+ .@group +"limit")+1 ) end;
+				setd ".group"+ .@group +"limit"+ .@dif, getd(".group"+ .@group +"limit"+ .@dif) + .@amount;
+			}
+			monster "this", 0, 0, "--ja--", getd(".group"+ .@group +"id["+ .@menu +"]"), .@amount;
+			end;
+		case 11:
+			if ( mobcount("this","") > 0 ) {
+				mes "[MVP Summoner]";
+				mes "I cannot offer this service when there are monsters around.";
+				close;
+			}
+			close2;
+			callshop "MVP room#branch", 0;
+			end;
+		case 12:
+			mes "[MVP Summoner]";
+			mes "Are you sure you want to leave this room ?";
+			mes "If this room left empty for more than "+ .nobodygiveup +" second, you lost ownership for this room.";
+			if ( select( "Yes:No") == 2 ) close;
+			warp "SavePoint", 0, 0;
+			end;
+		case 13:
+			mes "[MVP Summoner]";
+			getmapxy .@map$, .@x, .@y, 0;
+			if ( getmapusers(.@map$) > 1 ) {
+				mes "There are still some players in this room. Make sure you are the last member in this room to use this option.";
+				close;
+			}
+			mes "Are you sure you want to give up this room ?";
+			if ( .rentcost )
+				mes "You will need to pay again to enter this room.";
+			next;
+			if ( select( "Yes:No" ) == 2 ) close;
+			instance_destroy;
+			end;
+	}
+	close;
+
+OnInit:  // hide the NPC on the normal map
+	disablenpc strnpcinfo(0);
+	
+	// if the room left empty for # minutes, will be treated as give up the room. Do Not set this as 0
+	.nobodygiveup = instance_info("Private MVP Room", IIT_IDLE_TIMEOUT);
+	
+	// limit each room can only summon 1 monster at a time. (only the Summoning option)
+	// Turn it off (0) means the player can summon a lot of monsters as long as the player has enough Zeny/item. High rate server players love the room with a lot MVPs
+	// Turn it on (1) means the player have to kill existing monster before can summon a new one. Low rate server player prefer to take out MVP 1 by 1
+	set .floodcontrol, 0;
+
+	// if .floodcontrol is turn off, your players might experience lag if they summoned too many MVPs
+	// so what is the maximum input to limit your players summon too many ?
+	set .inputlimit, 30;
+
+	//	Options menu setting for MVP Summoner NPC.
+	set .@menu[0], 1; // Turn Heal option On/Off
+	set .@menu[1], 1; // Turn Group 1 summons On/Off -> MVP
+	set .@menu[2], 1; // Turn Group 2 summons On/Off -> mini boss
+	set .@menu[3], 0; // Turn Group 3 summons On/Off
+	set .@menu[4], 0; // Turn Group 4 summons On/Off
+	set .@menu[5], 0; // Turn Group 5 summons On/Off
+	set .@menu[6], 0; // Turn Group 6 summons On/Off
+	set .@menu[7], 0; // Turn Group 7 summons On/Off
+	set .@menu[8], 0; // Turn Group 8 summons On/Off
+	set .@menu[9], 0; // Turn Group 9 summons On/Off
+	set .@menu[10], 0; // Sell shop items options On/Off ( shop npc above )
+
+	// .limitspawn in previous revision changed to .grouplimit .
+	// it is for limit each monster spawn per session, prevent them only killing same monster again and again
+	// Now you can configure one group has limited summon, and another group has unlimited summon
+	// Tips: if you server has an insane custom MVP, you can put your custom mob to Group 3~9 with insane item cost, and limit only 1 summon per session
+	// .grouplimit use amount, means if group1limit set to 10, then each session can only summon up to 10 amount of that kind of monster. 0 is unlimited
+
+	// ---------
+	// Group 1 -> MVP 
+	// ---------
+	set .group1name$, "MVP"; // Group 1 name
+	set .group1itemid, 33010; // item id use for summon any Group 1 monster - 674 - mithil coin
+	set .group1itemamount, 1; // amount of items to summon a Group 1 monster
+	set .group1cost, 30000000; // if no item is specify, Zeny cost to summon a Group 1 monster
+	set .group1limit, 0; // limit of summon of Group 1 monster per session, prevent them only killing same monster again and again
+	setarray .group1id,
+		1511,//	Amon Ra
+		1785,//	Atroce
+		1630,//	Bacsojin
+		1039,//	Baphomet
+		1874,//	Beelzebub
+		1272,//	Dark Lord
+		1719,//	Datale
+		1046,//	Doppelgangger
+		1389,//	Dracula
+		1112,//	Drake
+		1115,//	Eddga
+		1418,//	Evil Snake Lord
+		1871,//	Fallen Bishop
+		1252,//	Garm
+		1768,//	Gloom Under Night
+		1086,//	Golden Thief Bug
+		1885,//	Gopinich
+		1832,//	Ifrit
+		1492,//	Incantation Samurai
+		1734,//	Kiel D-01
+		1251,//	Knight of Windstorm
+		1779,//	Ktullanux
+		1688,//	Lady Tanee
+		1373,//	Lord of Death
+		1147,//	Maya
+		1059,//	Mistress
+		1150,//	Moonlight Flower
+		1087,//	Orc Hero
+		1190,//	Orc Lord
+		1038,//	Osiris
+		1157,//	Pharaoh
+		1159,//	Phreeoni
+		1623,//	RSX 0806
+		1583,//	Tao Gunka
+		1708,//	Thanatos
+		1312,//	Turtle General
+		1751,//	Valkyrie Randgris
+		1685;// Vesper
+
+	// ---------
+	// Group 2 -> mini boss
+	// ---------
+	set .group2name$, "mini boss"; // Group 2 name
+	set .group2itemid, 674; // item id use for summon any Group 2 monster - 674 - mithil coin
+	set .group2itemamount, 0; // amount of items to summon a Group 2 monster
+	set .group2cost, 5000000; // if no item is specify, Zeny cost to summon a Group 2 monster
+	set .group2limit, 0; // limit of summon of Group 2 monster per session, prevent them only killing same monster again and again
+	setarray .group2id,
+		1096,// Angeling
+		1388,// Archangeling
+		1795,// Bloody Knight
+		1830,// Bow Guardian
+		1839,// Byorgue
+		1309,// Cat O' Nine Tail
+		1283,// Chimera
+		1302,// Dark Illusion
+		1198,// Dark Priest
+		1582,// Deviling
+		1091,// Dragon Fly
+		1093,// Eclipse
+		1205,// Executioner
+		1783,// Galion
+		1592,// Gangster
+		1120,// Ghostring
+		1259,// Gryphon
+		1720,// Hydro
+		1090,// Mastering
+		1289,// Maya Purple
+		1262,// Mutant Dragon
+		1203,// Mysteltainn
+		1870,// Necromancer
+		1295,// Owl Baron
+		1829,// Sword Guardian
+		1204,// Tirfing
+		1089,// Toad
+		1092,// Vagabond Wolf
+		1765;// Valkyrie
+
+	// ---------
+	// Group 3
+	// ---------
+	set .group3name$, "Poring-Family"; // Group 3 name
+	set .group3itemid, 12109; // item id use for summon any Group 3 monster - 12109 - Poring box
+	set .group3itemamount, 1; // amount of items to summon a Group 3 monster
+	set .group3cost, 0; // if no item is specify, Zeny cost to summon a Group 3 monster
+	set .group3limit, -5; // limit of summon of Group 3 monster per session, prevent them only killing same monster again and again
+	setarray .group3id,
+		1002,// Poring
+		1113,// Drops
+		1031,// Poporing
+		1242,// Marin
+		1062,// Santa Poring
+		1613,// Metaling
+		1784,// Stapo
+		1090,// Mastering
+		1096,// Angeling
+		1120,// Ghostring
+		1582,// Deviling
+		1388,// Arc Angeling
+		1502;// Pori Pori
+
+	// ---------
+	// Group 4
+	// ---------
+	set .group4name$, ""; // Group 4 name
+	set .group4itemid, 0; // item id use for summon any Group 4 monster
+	set .group4itemamount, 0; // amount of items to summon a Group 4 monster
+	set .group4cost, 0; // if no item is specify, Zeny cost to summon a Group 4 monster
+	set .group4limit, 0; // limit of summon of Group 4 monster per session, prevent them only killing same monster again and again
+	setarray .group4id,
+		1001,
+		1002;
+
+	// ---------
+	// Group 5
+	// ---------
+	set .group5name$, ""; // Group 5 name
+	set .group5itemid, 0; // item id use for summon any Group 5 monster
+	set .group5itemamount, 0; // amount of items to summon a Group 5 monster
+	set .group5cost, 0; // if no item is specify, Zeny cost to summon a Group 5 monster
+	set .group5limit, 0; // limit of summon of Group 5 monster per session, prevent them only killing same monster again and again
+	setarray .group5id,
+		1001,
+		1002;
+
+	// ---------
+	// Group 6
+	// ---------
+	set .group6name$, ""; // Group 6 name
+	set .group6itemid, 0; // item id use for summon any Group 6 monster
+	set .group6itemamount, 0; // amount of items to summon a Group 6 monster
+	set .group6cost, 0; // if no item is specify, Zeny cost to summon a Group 6 monster
+	set .group6limit, 0; // limit of summon of Group 6 monster per session, prevent them only killing same monster again and again
+	setarray .group6id,
+		1001,
+		1002;
+
+	// ---------
+	// Group 7
+	// ---------
+	set .group7name$, ""; // Group 7 name
+	set .group7itemid, 0; // item id use for summon any Group 7 monster
+	set .group7itemamount, 0; // amount of items to summon a Group 7 monster
+	set .group7cost, 0; // if no item is specify, Zeny cost to summon a Group 7 monster
+	set .group7limit, 0; // limit of summon of Group 7 monster per session, prevent them only killing same monster again and again
+	setarray .group7id,
+		1001,
+		1002;
+
+	// ---------
+	// Group 8
+	// ---------
+	set .group8name$, ""; // Group 8 name
+	set .group8itemid, 0; // item id use for summon any Group 8 monster
+	set .group8itemamount, 0; // amount of items to summon a Group 8 monster
+	set .group8cost, 0; // if no item is specify, Zeny cost to summon a Group 8 monster
+	set .group8limit, 0; // limit of summon of Group 8 monster per session, prevent them only killing same monster again and again
+	setarray .group8id,
+		1001,
+		1002;
+
+	// ---------
+	// Group 9
+	// ---------
+	set .group9name$, ""; // Group 9 name
+	set .group9itemid, 0; // item id use for summon any Group 9 monster
+	set .group9itemamount, 0; // amount of items to summon a Group 9 monster
+	set .group9cost, 0; // if no item is specify, Zeny cost to summon a Group 9 monster
+	set .group9limit, 0; // limit of summon of Group 9 monster per session, prevent them only killing same monster again and again
+	setarray .group9id,
+		1001,
+		1002;
+
+//	Config Ends ------------------------------------------------------------------------
+
+	if ( .inputlimit < 1 ) set .inputlimit, 1;
+
+	set .@i, 1;
+	while ( .@i <= 9 ) {
+		if ( .@menu[.@i] && getd(".group"+ .@i +"itemid") && getd(".group"+ .@i +"itemamount") ) {
+			if ( getitemname( getd(".group"+ .@i +"itemid") ) == "null" ) {
+				debugmes "Private MVP Room: Group no. "+ .@i +" is using invalid item id.";
+			}
+		}
+		set .@i, .@i +1 ;
+	}
+	set .menu$, ( (.@menu[0])?"Heal":"" )+":"+( (.@menu[1])?"Summon "+ .group1name$:"" )+":"+( (.@menu[2])?"Summon "+ .group2name$:"" )+":"+( (.@menu[3])?"Summon "+ .group3name$:"" )+":"+( (.@menu[4])?"Summon "+ .group4name$:"" )+":"+( (.@menu[5])?"Summon "+ .group5name$:"" )+":"+( (.@menu[6])?"Summon "+ .group6name$:"" )+":"+( (.@menu[7])?"Summon "+ .group7name$:"" )+":"+( (.@menu[8])?"Summon "+ .group8name$:"" )+":"+( (.@menu[9])?"Summon "+ .group9name$:"" )+":"+( (.@menu[10])?"Buy branches":"" )+":Leave this room:Give up this room";
+
+	set .@i, 1;
+	while ( .@i <= 9 ) {
+		setd ".group"+ .@i +"idsize", getarraysize( getd(".group"+ .@i +"id") );
+		if ( .@menu[.@i] && getd(".group"+ .@i +"limit") <= 0 ) {
+			set .@j, 0;
+			while ( .@j < getd(".group"+ .@i +"idsize") ) {
+				setd ".group"+ .@i +"menu$", getd(".group"+ .@i +"menu$") + getmonsterinfo( getd(".group"+ .@i +"id["+ .@j +"]"), 0) +":";
+				set .@j, .@j +1 ;
+			}
+		}
+		set .@i, .@i +1 ;
+	}
+	end;
+
+OnInstanceInit:  // initialize the NPC when the instance is created
+	end;
+
+}
